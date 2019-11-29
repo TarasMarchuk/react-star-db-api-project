@@ -1,58 +1,56 @@
 import React, { Component } from 'react';
+import { BrowserRouter as Router, Route } from 'react-router-dom';
 
 import './app.css';
 
 import Header from '../header';
 import RandomPlanet from '../random-planet';
-import ErrorIndicator from "../error-indicator/error-indicator";
-import PeoplePage from "../people-page/people-page";
+import SwapiService from "../../services/swapi-service";
+import { SwapiServiceProvider } from "../swapi-service-context";
+import ErrorBoundry from "../error-boundry/error-boundry";
+import DummySwapiService from "../../services/dummy-swapi-service";
+import {PeoplePage, PlanetsPage, StarshipsPage} from '../pages';
 
 export default class App extends Component {
 
   state = {
-    showRandomPlanet: true,
-    hasError: false
+    swapiService: new SwapiService()
   };
 
-  toggleRandomPlanet = () => {
-    this.setState((state) => {
+  onServiceChange = () => {
+    this.setState(({swapiService}) => {
+      const Service = swapiService instanceof SwapiService ? DummySwapiService : SwapiService;
       return {
-        showRandomPlanet: !state.showRandomPlanet
-      }
+        swapiService: new Service()
+      };
     });
-  };
-
-
-
-  componentDidCatch() {
-    this.setState({ hasError: true });
   };
 
   render() {
 
-    if (this.state.hasError) {
-      return <ErrorIndicator />
-    }
-
-    const planet = this.state.showRandomPlanet? <RandomPlanet/> : null;
-
     return (
-      <div className="stardb-app">
+      <ErrorBoundry>
+        <SwapiServiceProvider value={this.state.swapiService}>
+          <Router>
+            <div className="stardb-app">
 
-        <Header/>
-        {planet}
+              <Header onServiceChange={this.onServiceChange} />
 
-        <div className="row mb2 button-row">
-          <button
-            className="toggle-planet btn btn-warning btn-lg"
-            onClick={this.toggleRandomPlanet}>
-            Toggle Random Planet
-          </button>
-        </div>
+              <RandomPlanet />
 
-        <PeoplePage />
+              <Route path="/people" component={PeoplePage} />
+              <Route path="/planets" component={PlanetsPage} />
+              <Route path="/starships" component={StarshipsPage} />
 
-      </div>
+              {/*
+              <PeoplePage />
+              <PlanetsPage />
+              <StarshipsPage />*/}
+
+            </div>
+          </Router>
+        </SwapiServiceProvider>
+      </ErrorBoundry>
     );
   }
 };
